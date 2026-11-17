@@ -76,8 +76,8 @@ body{background:#0b0c0e}.masthead,.notes{border-color:#30343b}.eyebrow,.heading 
 <div class="tools"><button type="button" id="copy">Copiar firma enriquecida &#8599;</button><button type="button" class="secondary" id="restart">Reproducir recorrido</button></div>
 <p id="status" role="status" aria-live="polite"></p>
 <section class="notes" aria-label="Instalaci&oacute;n y compatibilidad">
-<div><h2>01 / Publicar las im&aacute;genes</h2><p>La vista usa archivos locales. Antes de instalar, aloj&aacute; en URLs p&uacute;blicas <strong>HTTPS</strong> <code>daisy-circular.png</code>, <code>linea-daisy.gif</code>, <code>linea-daisy-estatica.png</code>, <code>facebook-blanco.png</code>, <code>instagram-blanco.png</code>, <code>capacelogo.jpg</code> y <code>paraguaylogo.jpg</code>, y reemplaz&aacute; sus rutas en el HTML y el script. Copiar no sube las im&aacute;genes ni las adjunta al correo.</p></div>
-<div><h2>02 / Probar en Gmail</h2><p>Configuraci&oacute;n &rarr; Ver todos los ajustes &rarr; General &rarr; Firma. Cre&aacute; una firma, peg&aacute; y guard&aacute;. Envi&aacute; un correo real de prueba a escritorio y m&oacute;vil. Gmail y Outlook pueden cambiar fuentes, colores, espaciados o bloquear im&aacute;genes. Esta vista no garantiza el resultado en esos clientes.</p></div>
+<div><h2>01 / Copiar y pegar</h2><p>Presion&aacute; <strong>Copiar firma</strong>. Las im&aacute;genes ya est&aacute;n alojadas y se copian con sus direcciones HTTPS completas. No necesit&aacute;s descargar archivos, subir fotos ni editar c&oacute;digo. Manten&eacute; este sitio publicado para que las im&aacute;genes sigan disponibles en los correos.</p></div>
+<div><h2>02 / Instalar en Gmail</h2><p>Configuraci&oacute;n &rarr; Ver todos los ajustes &rarr; General &rarr; Firma &rarr; Crear nueva. Peg&aacute; con Ctrl+V o Cmd+V, elegila como predeterminada para correos nuevos y respuestas, y puls&aacute; <strong>Guardar cambios</strong>. Envi&aacute; un correo de prueba: algunos clientes modifican estilos o bloquean im&aacute;genes externas.</p></div>
 <div><h2>03 / Movimiento con criterio</h2><p>GIF original: 640 &times; 84 px, 75 cuadros, 5 segundos, una reproducci&oacute;n. Una l&iacute;nea cruza el ancho y las palabras aparecen y desaparecen; el primer y &uacute;ltimo cuadro contienen las tres palabras. El recorrido del borde es solo de la vista previa, no del correo. Con movimiento reducido se muestra y copia <code>linea-daisy-estatica.png</code>; el correo no detecta esa preferencia autom&aacute;ticamente.</p></div>
 <div><h2>04 / Detalles pendientes</h2><p>LinkedIn pendiente de recibir la URL correcta; no se invent&oacute; ning&uacute;n enlace. Si el portapapeles enriquecido no est&aacute; disponible, el bot&oacute;n selecciona la firma para copiar con Ctrl+C o Cmd+C. En m&oacute;vil, la firma conserva sus 640 px y la vista permite desplazamiento horizontal.</p></div>
 </section>
@@ -89,8 +89,13 @@ const status = document.getElementById('status');
 const orbit = document.getElementById('orbit');
 const restart = document.getElementById('restart');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+const assetBase = 'https://daisyfirma.vercel.app/';
+const assetUrl = name => new URL(name, assetBase).href;
+signature.querySelectorAll('img').forEach(image => {
+  image.src = assetUrl(image.getAttribute('src'));
+});
 function syncMotion() {
-  orbit.src = reducedMotion.matches ? 'linea-daisy-estatica.png' : 'linea-daisy.gif';
+  orbit.src = assetUrl(reducedMotion.matches ? 'linea-daisy-estatica.png' : 'linea-daisy.gif');
   restart.disabled = reducedMotion.matches;
   restart.textContent = reducedMotion.matches ? 'Movimiento reducido activo' : 'Reproducir recorrido';
 }
@@ -98,14 +103,14 @@ syncMotion();
 reducedMotion.addEventListener('change', syncMotion);
 restart.addEventListener('click', () => {
   if (reducedMotion.matches) return;
-  orbit.src = 'linea-daisy.gif?replay=' + Date.now();
+  orbit.src = assetUrl('linea-daisy.gif') + '?replay=' + Date.now();
   signature.getAnimations({ subtree: true }).forEach(animation => { animation.currentTime = 0; animation.play(); });
 });
 document.getElementById('copy').addEventListener('click', async () => {
   // Keep the email free of preview controls and cache-busting URLs.
   const email = signature.cloneNode(true);
   const copiedOrbit = email.querySelector('#orbit');
-  copiedOrbit.setAttribute('src', reducedMotion.matches ? 'linea-daisy-estatica.png' : 'linea-daisy.gif');
+  copiedOrbit.setAttribute('src', assetUrl(reducedMotion.matches ? 'linea-daisy-estatica.png' : 'linea-daisy.gif'));
   copiedOrbit.removeAttribute('id');
   try {
     if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') throw new Error('Clipboard unavailable');
@@ -113,7 +118,7 @@ document.getElementById('copy').addEventListener('click', async () => {
       'text/html': new Blob([email.innerHTML], { type: 'text/html' }),
       'text/plain': new Blob(['Daisy Britos | Gerente General | CAPACE\n+595 991 925 453\nhttps://wa.me/595991925453\nhttps://www.capace.org.py\nhttps://www.facebook.com/capace\nhttps://www.instagram.com/capacepy/'], { type: 'text/plain' })
     })]);
-    status.textContent = 'Firma copiada. Las im\u00e1genes necesitan URLs p\u00fablicas HTTPS antes de usarla en correo.';
+    status.textContent = 'Firma copiada. Pegala en la configuración de firmas de Gmail y guardá los cambios.';
   } catch {
     const range = document.createRange();
     range.selectNodeContents(signature);
@@ -121,7 +126,7 @@ document.getElementById('copy').addEventListener('click', async () => {
     if (selection) {
       selection.removeAllRanges();
       selection.addRange(range);
-      status.textContent = 'Firma seleccionada: presion\u00e1 Ctrl+C o Cmd+C. Public\u00e1 las im\u00e1genes en HTTPS antes de instalarla.';
+      status.textContent = 'Firma seleccionada: presioná Ctrl+C o Cmd+C y luego pegala en la configuración de firmas de Gmail.';
     } else {
       status.textContent = 'Seleccion\u00e1 la firma con el cursor y copiala manualmente.';
     }
